@@ -108,6 +108,8 @@ on post-fs-data
     # Camera
     mkdir /data/camera 0771 media camera
 
+    mkdir /data/etc 0775 system system
+
     # Kickstart
     mkdir /cache/qcks 0770 system system
     chown system /dev/block/platform/msm_sdcc.1/by-name
@@ -256,7 +258,7 @@ service qmuxd /system/bin/qmuxd
 service hci_attach /vendor/bin/init.qcom.bt.sh
     class late_start
     user bluetooth
-    group qcom_oncrpc bluetooth system
+    group bluetooth system
     disabled
     oneshot
     seclabel u:r:hci_attach:s0
