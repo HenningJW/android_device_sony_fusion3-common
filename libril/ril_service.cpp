@@ -564,6 +564,37 @@ bool dispatchString(int serial, int slotId, int request, const char * str) {
     return true;
 }
 
+bool dispatchStringManSel(int serial, int slotId, int request, const char * str) {
+    RequestInfo *pRI = android::addRequestToList(serial, slotId, request);
+    if (pRI == NULL) {
+        return false;
+    }
+
+    /**
+      * Qualcomm's RIL doesn't seem to issue any callbacks for opcode 47
+      * This may be a bug on how we call rild or simply some proprietary 'feature'
+      * ..and we don't care: We simply send a SUCCESS message back to the caller to
+      * indicate that we received the command & unblock the UI.
+      * The user will still see if the registration was OK by using the
+      * normal signal meter
+      */
+    if (request == RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL) {
+        RLOGE("Sending fake success event for request %s", requestToString(request));
+        RIL_onRequestComplete(pRI, RIL_E_SUCCESS, NULL, 0);
+    }
+
+    char **pString;
+    pString = (char **)calloc(1, sizeof(char *));
+    if (!copyHidlStringToRil(&pString[0], str, pRI)) {
+        return false;
+    }
+
+    CALL_ONREQUEST(request, pString, sizeof(char *), pRI, slotId);
+
+    memsetAndFreeStrings(1, pString);
+    return true;
+}
+
 bool dispatchStrings(int serial, int slotId, int request, int countStrings, ...) {
     RequestInfo *pRI = android::addRequestToList(serial, slotId, request);
     if (pRI == NULL) {
@@ -1336,7 +1367,7 @@ Return<void> RadioImpl::setNetworkSelectionModeManual(int32_t serial,
 #if VDBG
     RLOGD("setNetworkSelectionModeManual: serial %d", serial);
 #endif
-    dispatchString(serial, mSlotId, RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL,
+    dispatchStringManSel(serial, mSlotId, RIL_REQUEST_SET_NETWORK_SELECTION_MANUAL,
             operatorNumeric.c_str());
     return Void();
 }
